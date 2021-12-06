@@ -3,7 +3,7 @@
 #define ACID_SOL_ULT_ECHO_PIN         3
 #define ACID_SOL_ULT_TRIG_PIN         4
 
-#define GROWTH_LIGHT_DIM_PIN          5
+#define GROWTH_LIGHT_PIN              5
 
 #define NUTRIENT_PUMP_PWM_PIN         13
 
@@ -26,3 +26,10 @@
 
 // Device configs
 #define MAX_DISTANCE 200
+
+#define STATIC_IP 192, 168, 1, 5
+#define HTTP_PORT 80
+
+byte mac[] = {
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
+};

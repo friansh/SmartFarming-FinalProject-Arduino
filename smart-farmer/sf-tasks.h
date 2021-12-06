@@ -15,7 +15,6 @@ class SmartFarmerTasks {
         }
       }
 
-
       currentMillis = millis();
 
       // Every 120 milliseconds,read the analog value from the ADC
@@ -24,40 +23,38 @@ class SmartFarmerTasks {
         // Read the analog value and store into the buffer
         tdsAnalogBuffer[analogBufferIndex] = analogRead(TDS_INSTRUMENT_PIN);
         phAnalogBuffer[analogBufferIndex] = analogRead(PH_INSTRUMENT_PIN);
-        
+
         analogBufferIndex++;
         if (analogBufferIndex == SCOUNT)
           analogBufferIndex = 0;
       }
-      
+
       if (millis() - printTimepoint > 5000U) {
         printTimepoint = millis();
         sf_sensors.setTDS();
         sf_sensors.setPH();
       }
-  
+
       task(0, [] {
         sf_sensors.setFlow(&flowCount, 0.5);
       });
 
       //      task(1, [](){
       //         Serial.println("[INFO] Subroutine 1 called: updating the agriclimate parameter settings.");
-      //
       //      });
-      task(2, []() {
-        Serial.println("[INFO] Subroutine 2 called: sending the actual agroclimate parameters via serial comm.");
-        SmartFarmerTasks::sendAgroclimateData();
-      });
+      //      task(2, []() {
+      //        Serial.println("[INFO] Subroutine 2 called: sending the actual agroclimate parameters via serial comm.");
+      //        SmartFarmerTasks::sendAgroclimateData();
+      //      });
       //      task(3, [](){ Serial.println("[INFO] Subroutine 3 called: turning on or off the growth light"); });
-      task(4, [](){
-        Serial.println("[INFO] Subroutine 4 called: correcting the agriclimate parameters.");
-        sf_actuators.correctNutrientFlow();
-      });
+      //      task(4, []() {
+      //        Serial.println("[INFO] Subroutine 4 called: correcting the agriclimate parameters.");
+      //      });
 
 
     }
 
-    void waitForSettings() {
+    void waitForSettingsFromSerial() {
       unsigned long lastConfigurationRequest = 0;
       Serial.println(F("[COMD] Please send the settings!"));
       while (true) {
@@ -112,7 +109,7 @@ class SmartFarmerTasks {
 
     unsigned long   analogSampleTimepoint   = millis();
     unsigned long   printTimepoint          = millis();
-    
+
     void task( uint8_t taskNum, void (*callback)() ) {
       if ( currentMillis - taskScheduleLastRun[taskNum] >= taskScheduleInterval[taskNum] ) {
         if ( doTaskSchedule[taskNum] ) {
@@ -123,7 +120,7 @@ class SmartFarmerTasks {
       }
     }
 
-    static void sendAgroclimateData() {
+    static void sendAgroclimateDataToSerial() {
       StaticJsonDocument<JSON_OBJECT_SIZE(10)> actualAgroclimateData;
 
       actualAgroclimateData["temperature"]          = sf_sensors.getTemperature();
@@ -141,5 +138,4 @@ class SmartFarmerTasks {
       serializeJson(actualAgroclimateData, JSONOutput);
       Serial.println(JSONOutput);
     }
-
 };

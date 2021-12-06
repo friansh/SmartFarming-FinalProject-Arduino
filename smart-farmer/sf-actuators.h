@@ -1,7 +1,7 @@
 class SmartFarmerActuators {
   public:
     void begin() {
-      pinMode( GROWTH_LIGHT_DIM_PIN,      OUTPUT );
+      pinMode( GROWTH_LIGHT_PIN,      OUTPUT );
       pinMode( NUTRIENT_PUMP_PWM_PIN,     OUTPUT );
       pinMode( BASE_SOL_PUMP_EN_PIN,      OUTPUT );
       pinMode( ACID_SOL_PUMP_EN_PIN,      OUTPUT );
@@ -10,7 +10,8 @@ class SmartFarmerActuators {
     }
 
     void run() {
-        if ( millis() - lastNFCorrect >= 5000) {
+        currentMillis = millis();
+        if ( currentMillis - lastNFCorrect >= 5000) {
           float currentNutrientFlow = sf_sensors.getNutrientFlow();
           Serial.print("[INFO] Current nutrient flow: ");
           Serial.print(currentNutrientFlow);
@@ -41,51 +42,60 @@ class SmartFarmerActuators {
             }
           }
               
-          lastNFCorrect = millis();
+          lastNFCorrect = currentMillis;
         }
+        
         setNutrientFlowAnalog(nutrientFlowPWMValue);
+        digitalWrite(GROWTH_LIGHT_PIN, growthLightSetting);
     }
     
     bool setPh(float ph){
-      if ( ph > 14 || ph < 1 ) return false;
+      if ( ph > 14 || ph < 1 ) {
+        Serial.println("[CONF] Invalid pH value!");
+        return false;
+      }
       phSetting = ph;
       return true;
     }
 
     bool setLightIntensity(float lightIntensity){
-      if ( lightIntensity > 20000 || lightIntensity < 0 ) return false;
+      if ( lightIntensity > 20000 || lightIntensity < 0 ) {
+        Serial.println("[CONF] Invalid light intensity value!");
+        return false;
+      }
       lightIntensitySetting = lightIntensity;
       return true;
     }
 
     bool setNutrientFlow(float nutrientFlow){
-      if ( nutrientFlow > 10 || nutrientFlow < 0 ) return false;
+      if ( nutrientFlow > 10 || nutrientFlow < 0 ) {
+        Serial.println("[CONF] Invalid nutrient flow value!");
+        return false;
+      }
       nutrientFlowSetting = nutrientFlow;
+      Serial.print("[INFO] Setting nutrient flow to: ");
+      Serial.print(nutrientFlowSetting);
+      nutrientFlowPWMValue = 15.67610421 * pow(nutrientFlowSetting, 2) - 17.63590707 * nutrientFlowSetting + 121;
+      Serial.print(" l/m with theoretical PWM: ");
+      Serial.println(nutrientFlowPWMValue);
       return true;
     }
 
     void setGrowthLight(bool growthLight) {
       growthLightSetting = growthLight;
     }
-
-    void correctNutrientFlow() {
-      Serial.print("[INFO] Correcting nutrient flow to: ");
-      Serial.print(nutrientFlowSetting);
-      nutrientFlowPWMValue = 15.67610421 * pow(nutrientFlowSetting, 2) - 17.63590707 * nutrientFlowSetting + 121;
-      Serial.print(" l/m with theoretical PWM: ");
-      Serial.println(nutrientFlowPWMValue);
-    }
     
   private:
     float   phSetting               = 0;
     float   lightIntensitySetting   = 0;
-    float   nutrientFlowSetting     = 5;
+    float   nutrientFlowSetting     = 0;
     bool    growthLightSetting      = false;
     float   nutrientFlow            = 0;
 
     unsigned int growthLightPWMValue  = 0;
     int nutrientFlowPWMValue = 0;
 
+    unsigned long currentMillis = 0;
     unsigned long lastNFCorrect = 0;
 
     void correctPh() {
@@ -109,20 +119,11 @@ class SmartFarmerActuators {
 //          if ( getLightIntensity() < ( lightIntensitySetting * 0.9 ) ) growthLightPWMValue += 5;
 //          if ( getLightIntensity() > ( lightIntensitySetting * 1.1 ) ) growthLightPWMValue -= 5;
 //          
-//          analogWrite( GROWTH_LIGHT_DIM_PIN, growthLightPWMValue );
+//          analogWrite( GROWTH_LIGHT_PIN, growthLightPWMValue );
 //          delay(10);
 //        }
 //      else turnOffGrowthLight();
 //    }
 //
 //
-//    void turnOnGrowthLight() {
-//      growthLightSetting = true;
-//      correctLightIntensity();
-//    }
-//
-//    void turnOffGrowthLight() {
-//      growthLightSetting = false;
-//      analogWrite( GROWTH_LIGHT_DIM_PIN, 0 );
-//    }
 };
