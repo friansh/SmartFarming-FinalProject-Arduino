@@ -17,12 +17,16 @@
    3. nutrient flow (m^3/min)
 
 */
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+#include <SPI.h>
+#include <EthernetENC.h>
+
+#include "helpers.h"
 
 #include "configuration.h"
 #include <ArduinoJson.h>
-
-#include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 #include "sf-sensors.h"
 SmartFarmerSensors sf_sensors;
@@ -42,6 +46,9 @@ class SmartFarmer {
       Serial.println(F("[INFO] Program started..."));
 
       lcd.begin();
+      
+      lcdPrint("Device", "running...");
+      
       sf_sensors.begin();
       sf_actuators.begin();
       sf_http.begin();
@@ -65,23 +72,4 @@ class SmartFarmer {
       sf_actuators.run();
       sf_http.run();
     }
-
-    //    void lcdPrint(String messageLine1, String messageLine2) {
-    //      int delta = 16 - messageLine1.length();
-    //      for ( int i=0; i < delta; i++ ) {
-    //        messageLine1 += " ";
-    //      }
-    //
-    //      delta = 16 - messageLine2.length();
-    //      for ( int i=0; i < delta; i++ ) {
-    //        messageLine2 += " ";
-    //      }
-    //
-    //      lcd.home();
-    //      lcd.print(messageLine1);
-    //      lcd.setCursor(0,1);
-    //      lcd.print(messageLine2);
-    //    }
-
-
 };

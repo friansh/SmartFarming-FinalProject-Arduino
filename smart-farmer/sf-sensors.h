@@ -53,34 +53,7 @@ class SmartFarmerSensors {
     }
 
     float getPH() {
-      return (float) ph;
-
-      //      return (float) analogRead(PH_INSTRUMENT_PIN) / 1023.0 * 5.0 ;
-
-      // y = m*x + c;
-      //  when:
-      //  y = calculated pH
-      //  x = analog read from ph instrument pin
-
-      //      float m = 1;
-      //      float c = 5;
-      //      float calculatedPh = ( m * analogRead(PH_INSTRUMENT_PIN) ) + c;
-      //      return calculatedPh;
-      //      return (float) random(10,70) / 10;
-
-      //      int samples = 100;
-      //      float adc_resolution = 1024.0;
-      //      int measurings = 0;
-
-      //      for (int i = 0; i < samples; i++) {
-      //        measurings += analogRead(PH_INSTRUMENT_PIN);
-      //        delay(10);
-      //      }
-
-      //      float voltage = 5 / adc_resolution * measurings / samples;
-      //      return analogRead(PH_INSTRUMENT_PIN) / 1023.0 * 5.0 ;
-      //      return (double) 7 + ((2.5 - ( analogRead(PH_INSTRUMENT_PIN) / 1023.0 * 5.0 ) ) / 0.18);
-      //      return 7 + ((2.5 - voltage) / 0.18);
+      return ph - 1.00;
     }
 
     float getLightIntensity() {
@@ -114,29 +87,20 @@ class SmartFarmerSensors {
     }
 
     float getTDS() {
-      return (float) tds;
+      return tds - 493.00;
     }
 
     float getEC() {
-      return (double) tds * 2 / 1000;
+      return (double) ( tds - 493.00 ) * 2 / 1000;
     }
 
     void setTDS() {
       for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
         analogBufferTemp[copyIndex] = tdsAnalogBuffer[copyIndex];
 
-      // Read the analog value more stable by the median filtering algorithm, and convert to voltage value
-      averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * (float)VREF / 1024.0;
-      // Temperature compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
-      float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);
-      // Temperature compensation
-      float compensationVolatge = averageVoltage / compensationCoefficient;
-      // Convert voltage value to tds value
-      tds = averageVoltage;
-      return;
-      tds = (133.42 * compensationVolatge * compensationVolatge * compensationVolatge - 255.86 * compensationVolatge * compensationVolatge + 857.39 * compensationVolatge) * 0.5;
-      //      Serial.println(tds);
-      //      return tds;
+      float avgAnalogBit = getMedianNum(analogBufferTemp, SCOUNT);
+
+      tds = 99.35716843 * exp(0.011733914 * avgAnalogBit);
     }
 
     void setPH() {
@@ -144,8 +108,8 @@ class SmartFarmerSensors {
       for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
         analogBufferTemp[copyIndex] = phAnalogBuffer[copyIndex];
 
-      averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * VREF / 1024.0;
-      ph = 7.0 + ((2.5 - averageVoltage) / 0.18);
+      float avgAnalogBit = getMedianNum(analogBufferTemp, SCOUNT);
+      ph = 2.854567346 * exp(0.002079133 *avgAnalogBit);
     }
 
     void setFlow(int *count, float factor) {

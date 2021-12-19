@@ -1,12 +1,8 @@
-#include <SPI.h>
-#include <EthernetENC.h>
-
 class SmartFarmerHttp {
   public:
     void begin() {
       ip = new IPAddress(192, 168, 5, 5);
       server = new EthernetServer(HTTP_PORT);
-
 
       Serial.println("[ETHR] Initialize Ethernet with DHCP:");
       if (Ethernet.begin(mac) == 0) {
@@ -23,9 +19,11 @@ class SmartFarmerHttp {
         }
         // try to congifure using IP address instead of DHCP:
         Ethernet.begin(mac, *ip);
+        lcdPrint("Static IP", IpAddress2String(Ethernet.localIP()));
       } else {
         Serial.print("[ETHR] DHCP assigned IP ");
         Serial.println(Ethernet.localIP());
+        lcdPrint("DHCP IP", IpAddress2String(Ethernet.localIP()));
       }
 
       server->begin();
@@ -50,7 +48,30 @@ class SmartFarmerHttp {
               String httpFirstLine = readString.substring(0, readString.indexOf("\n"));
               String path = httpFirstLine.substring(firstSpace + 1, secondSpace);
 
-              if (path.indexOf("/sensors") >= 0) {
+              if ( path == "/" ) {
+                String html = "<h2>Welcome to the Smart Farming Microcontroler API!</h2>";
+                html += "<h4>Go to the a link below to do some action ;)</h4>";
+                html += "<ul>";
+                html += "<li><a href=\"/sensors\">Check sensor reading value</a></li>";
+                html += "<li><a href=\"/light/1\">Turn on the growth light</a></li>";
+                html += "<li><a href=\"/light/0\">Turn off the growth light</a></li>";
+                html += "</ul>";
+                html += "<h4>Set the parameters setpoint below.</h4>";
+                html += "<form action=\"/config\" method=\"post\">";
+                html += "<label for=\"ph\">pH:</label><br/>";
+                html += "<input type=\"text\" id=\"ph\" name=\"ph\"><br/>";
+                html += "<label for=\"lightintensity\">Light intensity:</label><br/>";
+                html += "<input type=\"text\" id=\"lightintensity\" name=\"light_intensity\"><br/>";
+                html += "<label for=\"nutrientflow\">Nutrient flow:</label><br/>";
+                html += "<input type=\"text\" id=\"nutrientflow\" name=\"nutrient_flow\"><br/><br/>";
+                html += "<input type=\"submit\" value=\"Submit\">";
+                html += "</form>";
+                html += "<h5>Copyright &copy; 2021 Fikri Rida P.</h5>";
+
+                sendHTML(html.c_str(), client);
+              }
+
+              else if (path.indexOf("/sensors") >= 0) {
                 StaticJsonDocument<JSON_OBJECT_SIZE(10)> actualAgroclimateData;
 
                 actualAgroclimateData["ph"]                   = sf_sensors.getPH();
@@ -62,18 +83,21 @@ class SmartFarmerHttp {
                 String JSONOutput = "";
                 serializeJson(actualAgroclimateData, JSONOutput);
                 sendData(JSONOutput.c_str(), client);
+                lcdPrint("Sensors data", "sent!");
               }
 
               else if (path.indexOf("/light/0") >= 0) {
                 sf_actuators.setGrowthLight(false);
                 Serial.println("[CORR] The growth lamp configuration saved to off");
-                sendData("The growth lamp configuration saved to off", client);
+                sendHTML("The growth lamp configuration saved to off", client);
+                lcdPrint("Growth lamp", "turned off!");
               }
 
               else if (path.indexOf("/light/1") >= 0) {
                 sf_actuators.setGrowthLight(true);
                 Serial.println("[CORR] The growth lamp configuration saved to on");
-                sendData("The growth lamp configuration saved to on", client);
+                sendHTML("The growth lamp configuration saved to on", client);
+                lcdPrint("Growth lamp", "turned on!");
               }
 
               else if (path.indexOf("/config") >= 0) {
@@ -89,8 +113,6 @@ class SmartFarmerHttp {
 
                 const int capacity = JSON_OBJECT_SIZE(10);
                 StaticJsonDocument<capacity> receivedConfig;
-
-                receivedConfig["message"] = "The configuration has been saved.";
 
                 for (int i = 0; i < keyCount; i++) {
                   String singlePostData = "";
@@ -120,29 +142,38 @@ class SmartFarmerHttp {
                   float light_intensity = receivedConfig["config"]["light_intensity"];
                   float nutrient_flow   = receivedConfig["config"]["nutrient_flow"];
 
-                  Serial.println("[CONF] The settings from network has been saved!");
+                  Serial.println("[CONF] Saving the settings from network...");
+
+                  StaticJsonDocument<JSON_OBJECT_SIZE(10)> savedConfig;
+                  savedConfig["message"] = "The configuration has been saved.";
 
                   if (sf_actuators.setPh(ph)) {
                     Serial.print  ("[CONF] - pH\t\t : ");
                     Serial.println(ph);
+                    savedConfig["config"]["ph"] = ph;
                   }
 
                   if (sf_actuators.setLightIntensity(light_intensity)) {
                     Serial.print  ("[CONF] - light intensity : ");
                     Serial.println(light_intensity);
+                    savedConfig["config"]["light_intensity"] = light_intensity;
                   }
 
                   if (sf_actuators.setNutrientFlow(nutrient_flow)) {
                     Serial.print  ("[CONF] - nutrient flow\t : ");
                     Serial.println(nutrient_flow);
+                    savedConfig["config"]["nutrient_flow"] = nutrient_flow;
                   }
+
+                  Serial.println("[CONF] The new configuration has been saved!");
+                  lcdPrint("New config", "saved!");
+                  String serializedConfig = "";
+                  serializeJson(savedConfig, serializedConfig);
+                  sendData(serializedConfig.c_str(), client);
                 } else {
                   Serial.println("[CONF] The received configuration has missing key(s).");
+                  sendHTML("Failed to save, the received parameter setpoints were not complete", client);
                 }
-
-                String serializedConfig = "";
-                serializeJson(receivedConfig, serializedConfig);
-                sendData(serializedConfig.c_str(), client);
                 break;
               }
 
@@ -157,7 +188,35 @@ class SmartFarmerHttp {
         }
         client.stop();
       }
+      switch (Ethernet.maintain()) {
+        case 1:
+          //renewed fail
+          Serial.println("[ETHR] Error: renewed fail");
+          break;
+
+        case 2:
+          //renewed success
+          Serial.print("[ETHR] Renewed success, my IP address: ");
+          Serial.println(Ethernet.localIP());
+          break;
+
+        case 3:
+          //rebind fail
+          Serial.println("[ETHR] Error: rebind fail");
+          break;
+
+        case 4:
+          //rebind success
+          Serial.print("[ETHR] Rebind success, my IP address: ");
+          Serial.println(Ethernet.localIP());
+          break;
+
+        default:
+          //nothing happened
+          break;
+      }
     }
+    
   private:
     IPAddress* ip;
     EthernetServer* server;
@@ -168,6 +227,16 @@ class SmartFarmerHttp {
       client.println("Connection: close");
       client.println();
       client.println(data);
+    }
+
+    void sendHTML(const char* data, EthernetClient client) {
+      client.println("HTTP/1.1 200 OK");
+      client.println("Content-Type: text/html");
+      client.println("Connection: close");
+      client.println();
+      client.println("<html><head><title>Microcontroller API</title></head><body>");
+      client.println(data);
+      client.println("</body></html>");
     }
 
     void sendNotFound(EthernetClient client) {

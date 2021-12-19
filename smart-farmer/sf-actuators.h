@@ -26,18 +26,22 @@ class SmartFarmerActuators {
                 Serial.print("[CORR] Nutrient motor PWM reached maximum value! Decreasing to ");
                 Serial.print(nutrientFlowPWMValue = 255);
                 Serial.println("...");
+                lcdPrint("PWM reached max", "value!");
               } else {
                 Serial.print("[CORR] Increasing nutrient motor PWM value by 5. Current PWM: ");
                 Serial.println(nutrientFlowPWMValue += 5);
+                lcdPrint("Increasing PWM", "to " + String(nutrientFlowPWMValue));
               }
             } else if (currentNutrientFlow > ( nutrientFlowSetting * 0.9 )) {
               if (nutrientFlowPWMValue <= 0) {
                 Serial.print("[CORR] Nutrient motor PWM reached minimum value! Increasing to ");
                 Serial.print(nutrientFlowPWMValue = 0);
                 Serial.print("...");
+                lcdPrint("PWM reached min", "value!");
               } else {
                 Serial.print("[CORR] Decreasing nutrient motor PWM value by 5. Current PWM: ");
                 Serial.println(nutrientFlowPWMValue -= 5);
+                lcdPrint("Decreasing PWM", "to " + String(nutrientFlowPWMValue));
               }
             }
           }
@@ -46,7 +50,7 @@ class SmartFarmerActuators {
         }
         
         setNutrientFlowAnalog(nutrientFlowPWMValue);
-        digitalWrite(GROWTH_LIGHT_PIN, growthLightSetting);
+        digitalWrite(GROWTH_LIGHT_PIN, !growthLightSetting);
     }
     
     bool setPh(float ph){

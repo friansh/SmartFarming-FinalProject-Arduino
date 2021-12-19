@@ -1,6 +1,5 @@
-#include "helpers.h"
-
 #include "smartfarmerlib.h"
+
 SmartFarmer sf;
 
 void setup() {
