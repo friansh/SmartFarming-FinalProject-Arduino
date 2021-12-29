@@ -13,6 +13,8 @@ class SmartFarmerSensors {
       pinMode(PH_INSTRUMENT_PIN,   INPUT);
       pinMode(YF_S201_PIN,         INPUT);
 
+      attachInterrupt(digitalPinToInterrupt(YF_S201_PIN), increaseFlowCount, FALLING);
+
       dht                         = new DHT_Unified(DHT22_PIN, DHT22);
       nutrientLevelUltrasonic     = new NewPing(NUTRIENT_SOL_ULT_TRIG_PIN, NUTRIENT_SOL_ULT_ECHO_PIN, MAX_DISTANCE);
       acidSolutionLevelUltrasonic = new NewPing(ACID_SOL_ULT_TRIG_PIN, ACID_SOL_ULT_ECHO_PIN, MAX_DISTANCE);
@@ -24,14 +26,14 @@ class SmartFarmerSensors {
         Serial.println("[SNCK] no TSL2561 detected");
       else {
         /* You can also manually set the gain or enable auto-gain support */
-        // tsl.setGain(TSL2561_GAIN_1X);      /* No gain ... use in bright light to avoid sensor saturation */
-        // tsl.setGain(TSL2561_GAIN_16X);     /* 16x gain ... use in low light to boost sensitivity */
+        // lightIntensitySensor->setGain(TSL2561_GAIN_1X);      /* No gain ... use in bright light to avoid sensor saturation */
+        // lightIntensitySensor->setGain(TSL2561_GAIN_16X);     /* 16x gain ... use in low light to boost sensitivity */
         lightIntensitySensor->enableAutoRange(true);            /* Auto-gain ... switches automatically between 1x and 16x */
 
         /* Changing the integration time gives you better sensor resolution (402ms = 16-bit data) */
-        lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);      /* fast but low resolution */
-        // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);  /* medium resolution and speed   */
-        // tsl.setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);  /* 16-bit data but slowest conversions */
+        // lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_13MS);      /* fast but low resolution */
+        // lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);  /* medium resolution and speed   */
+        lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);  /* 16-bit data but slowest conversions */
 
         gatherTSLInfo();
         checkTSL();
@@ -109,7 +111,7 @@ class SmartFarmerSensors {
         analogBufferTemp[copyIndex] = phAnalogBuffer[copyIndex];
 
       float avgAnalogBit = getMedianNum(analogBufferTemp, SCOUNT);
-      ph = 2.854567346 * exp(0.002079133 *avgAnalogBit);
+      ph = 2.854567346 * exp(0.002079133 * avgAnalogBit);
     }
 
     void setFlow(int *count, float factor) {

@@ -71,7 +71,7 @@ class SmartFarmerHttp {
                 sendHTML(html.c_str(), client);
               }
 
-              else if (path.indexOf("/sensors") >= 0) {
+              else if (path == "/sensors") {
                 StaticJsonDocument<JSON_OBJECT_SIZE(10)> actualAgroclimateData;
 
                 actualAgroclimateData["ph"]                   = sf_sensors.getPH();
@@ -86,21 +86,21 @@ class SmartFarmerHttp {
                 lcdPrint("Sensors data", "sent!");
               }
 
-              else if (path.indexOf("/light/0") >= 0) {
+              else if (path == "/light/0") {
                 sf_actuators.setGrowthLight(false);
                 Serial.println("[CORR] The growth lamp configuration saved to off");
                 sendHTML("The growth lamp configuration saved to off", client);
                 lcdPrint("Growth lamp", "turned off!");
               }
 
-              else if (path.indexOf("/light/1") >= 0) {
+              else if (path == "/light/1") {
                 sf_actuators.setGrowthLight(true);
                 Serial.println("[CORR] The growth lamp configuration saved to on");
                 sendHTML("The growth lamp configuration saved to on", client);
                 lcdPrint("Growth lamp", "turned on!");
               }
 
-              else if (path.indexOf("/config") >= 0) {
+              else if (path == "/config") {
                 Serial.println("[HTTP] HTTP POST received to \"config\" endpoint with body:");
                 String postData = "";
                 while (client.available()) {
@@ -151,21 +151,31 @@ class SmartFarmerHttp {
                     Serial.print  ("[CONF] - pH\t\t : ");
                     Serial.println(ph);
                     savedConfig["config"]["ph"] = ph;
+                    #ifdef SAVE_CONFIG_EEPROM
+                      sf_eeprom.savePh(ph);
+                    #endif
                   }
 
                   if (sf_actuators.setLightIntensity(light_intensity)) {
                     Serial.print  ("[CONF] - light intensity : ");
                     Serial.println(light_intensity);
                     savedConfig["config"]["light_intensity"] = light_intensity;
+                    #ifdef SAVE_CONFIG_EEPROM
+                      sf_eeprom.saveLightIntensity(light_intensity);
+                    #endif
                   }
 
                   if (sf_actuators.setNutrientFlow(nutrient_flow)) {
                     Serial.print  ("[CONF] - nutrient flow\t : ");
                     Serial.println(nutrient_flow);
                     savedConfig["config"]["nutrient_flow"] = nutrient_flow;
+                    #ifdef SAVE_CONFIG_EEPROM
+                      sf_eeprom.saveNutrientFlow(nutrient_flow);
+                    #endif
                   }
 
                   Serial.println("[CONF] The new configuration has been saved!");
+
                   lcdPrint("New config", "saved!");
                   String serializedConfig = "";
                   serializeJson(savedConfig, serializedConfig);
@@ -216,7 +226,7 @@ class SmartFarmerHttp {
           break;
       }
     }
-    
+
   private:
     IPAddress* ip;
     EthernetServer* server;

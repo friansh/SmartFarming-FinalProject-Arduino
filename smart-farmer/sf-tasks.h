@@ -1,19 +1,21 @@
 class SmartFarmerTasks {
   public:
     void run() {
-      if ( Serial.available() > 0 ) {
-        String receivedSerialData = Serial.readString();
-        StaticJsonDocument<JSON_OBJECT_SIZE(11)> receivedData;
-        DeserializationError err = deserializeJson(receivedData, receivedSerialData);
-        if ( err ) {
-          Serial.print(F("[WARN] JSON parser error: "));
-          Serial.println(err.c_str());
-        } else {
-          if (!receivedData.containsKey("action")) return;
-          const unsigned int receivedAction = receivedData["action"];
-          doTaskSchedule[receivedAction] = true;
+      #ifdef DATA_VIA_SERIAL
+        if ( Serial.available() > 0 ) {
+          String receivedSerialData = Serial.readString();
+          StaticJsonDocument<JSON_OBJECT_SIZE(11)> receivedData;
+          DeserializationError err = deserializeJson(receivedData, receivedSerialData);
+          if ( err ) {
+            Serial.print(F("[WARN] JSON parser error: "));
+            Serial.println(err.c_str());
+          } else {
+            if (!receivedData.containsKey("action")) return;
+            const unsigned int receivedAction = receivedData["action"];
+            doTaskSchedule[receivedAction] = true;
+          }
         }
-      }
+      #endif
 
       currentMillis = millis();
 
@@ -39,18 +41,24 @@ class SmartFarmerTasks {
         sf_sensors.setFlow(&flowCount, 0.5);
       });
 
-      //      task(1, [](){
-      //         Serial.println("[INFO] Subroutine 1 called: updating the agriclimate parameter settings.");
-      //      });
-      //      task(2, []() {
-      //        Serial.println("[INFO] Subroutine 2 called: sending the actual agroclimate parameters via serial comm.");
-      //        SmartFarmerTasks::sendAgroclimateData();
-      //      });
-      //      task(3, [](){ Serial.println("[INFO] Subroutine 3 called: turning on or off the growth light"); });
-      //      task(4, []() {
-      //        Serial.println("[INFO] Subroutine 4 called: correcting the agriclimate parameters.");
-      //      });
-
+      #ifdef DATA_VIA_SERIAL
+        task(1, [](){
+           Serial.println("[INFO] Subroutine 1 called: updating the agriclimate parameter settings.");
+           // ToDo
+        });
+        task(2, []() {
+          Serial.println("[INFO] Subroutine 2 called: sending the actual agroclimate parameters via serial comm.");
+          SmartFarmerTasks::sendAgroclimateData();
+        });
+        task(3, [](){
+          Serial.println("[INFO] Subroutine 3 called: turning on or off the growth light.");
+          // ToDo
+        });
+        task(4, []() {
+          Serial.println("[INFO] Subroutine 4 called: correcting the agriclimate parameters.");
+          // ToDo
+        });
+      #endif
 
     }
 
@@ -102,9 +110,14 @@ class SmartFarmerTasks {
     }
 
   private:
+    bool updateAgriclimateParamsCheck       = 1 * 1000;
+    bool sendActualParamsCheck              = 1 * 1000;
+    bool switchGrowthLightCheck             = 5 * 60 * 1000;
+    bool correctAgroclimateParamsCheck      = 1 * 1000;
+  
     unsigned long   currentMillis           = 0;
     unsigned long   taskScheduleLastRun[6]  = {0, 0, 0, 0, 0, 0};
-    unsigned long   taskScheduleInterval[6] = {2000, 1 * 1000, 1 * 1000, 5 * 60 * 1000, 1 * 1000, 40};
+    unsigned long   taskScheduleInterval[6] = {2000, updateAgriclimateParamsCheck, sendActualParamsCheck, switchGrowthLightCheck, correctAgroclimateParamsCheck, 40};
     bool            doTaskSchedule[6]       = {true, false, false, false, false, true};
 
     unsigned long   analogSampleTimepoint   = millis();
@@ -123,14 +136,14 @@ class SmartFarmerTasks {
     static void sendAgroclimateDataToSerial() {
       StaticJsonDocument<JSON_OBJECT_SIZE(10)> actualAgroclimateData;
 
-      actualAgroclimateData["temperature"]          = sf_sensors.getTemperature();
-      actualAgroclimateData["humidity"]             = sf_sensors.getHumidity();
+//      actualAgroclimateData["temperature"]          = sf_sensors.getTemperature();
+//      actualAgroclimateData["humidity"]             = sf_sensors.getHumidity();
       actualAgroclimateData["ph"]                   = sf_sensors.getPH();
       actualAgroclimateData["light_intensity"]      = sf_sensors.getLightIntensity();
       actualAgroclimateData["nutrient_flow"]        = sf_sensors.getNutrientFlow();
-      actualAgroclimateData["nutrient_level"]       = sf_sensors.getNutrientLevel();
-      actualAgroclimateData["acid_solution_level"]  = sf_sensors.getAcidSolutionLevel();
-      actualAgroclimateData["base_solution_level"]  = sf_sensors.getBaseSolutionLevel();
+//      actualAgroclimateData["nutrient_level"]       = sf_sensors.getNutrientLevel();
+//      actualAgroclimateData["acid_solution_level"]  = sf_sensors.getAcidSolutionLevel();
+//      actualAgroclimateData["base_solution_level"]  = sf_sensors.getBaseSolutionLevel();
       actualAgroclimateData["tds"]                  = sf_sensors.getTDS();
       actualAgroclimateData["ec"]                   = sf_sensors.getEC();
 

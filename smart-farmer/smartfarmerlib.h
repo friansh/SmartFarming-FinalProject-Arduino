@@ -28,6 +28,9 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #include "configuration.h"
 #include <ArduinoJson.h>
 
+#include "sf-eeprom.h"
+SmartFarmerEEPROM sf_eeprom;
+
 #include "sf-sensors.h"
 SmartFarmerSensors sf_sensors;
 
@@ -37,8 +40,10 @@ SmartFarmerActuators sf_actuators;
 #include "sf-tasks.h"
 SmartFarmerTasks sf_tasks;
 
-#include "sf-http.h"
-SmartFarmerHttp sf_http;
+#ifdef DATA_VIA_HTTP
+  #include "sf-http.h"
+  SmartFarmerHttp sf_http;
+#endif
 
 class SmartFarmer {
   public:
@@ -46,21 +51,24 @@ class SmartFarmer {
       Serial.println(F("[INFO] Program started..."));
 
       lcd.begin();
-      
+
       lcdPrint("Device", "running...");
-      
+
       sf_sensors.begin();
       sf_actuators.begin();
-      sf_http.begin();
-      
-//      sf_tasks.waitForSettings();
 
-//      Serial.println(F("[INFO] The smartfarmer Arduino sub-system is ready to execute the specified commands..."));
-//      Serial.println(F("[INFO] - 1: Command for Arduino to update the agroclimate parameter settings."));
-//      Serial.println(F("[INFO] - 2: Command for Arduino to send the actual agroclimate parameters."));
-//      Serial.println(F("[INFO] - 3: Command for Arduino to turn on or off the growth light."));
-//      Serial.println(F("[INFO] - 4: Command for Arduino to correct the agroclimate parameters."));
+      #ifdef DATA_VIA_HTTP
+        sf_http.begin();
+      #endif
 
+      #ifdef DATA_VIA_SERIAL
+        sf_tasks.waitForSettings();
+        Serial.println(F("[INFO] The smartfarmer Arduino sub-system is ready to execute the specified commands..."));
+        Serial.println(F("[INFO] - 1: Command for Arduino to update the agroclimate parameter settings."));
+        Serial.println(F("[INFO] - 2: Command for Arduino to send the actual agroclimate parameters."));
+        Serial.println(F("[INFO] - 3: Command for Arduino to turn on or off the growth light."));
+        Serial.println(F("[INFO] - 4: Command for Arduino to correct the agroclimate parameters."));
+      #endif
 
       randomSeed(micros());
 
@@ -70,6 +78,8 @@ class SmartFarmer {
     void run() {
       sf_tasks.run();
       sf_actuators.run();
-      sf_http.run();
+      #ifdef DATA_VIA_HTTP
+        sf_http.run();
+      #endif
     }
 };
