@@ -1,3 +1,9 @@
+/*
+ *  -----------------------------------------------
+ * |          Libraries Helper Functions           |
+ *  -----------------------------------------------
+ */
+ 
 int flowCount = 0;
 
 // TDS Sensor Parameters
@@ -35,6 +41,7 @@ int getMedianNum(int bArray[], int iFilterLen) {
   return bTemp;
 }
 
+#ifdef INTERFACE_LCD_16x2
 void lcdPrint(String messageLine1, String messageLine2) {
   int delta = 16 - messageLine1.length();
   for ( int i = 0; i < delta; i++ ) {
@@ -51,10 +58,15 @@ void lcdPrint(String messageLine1, String messageLine2) {
   lcd.setCursor(0, 1);
   lcd.print(messageLine2);
 }
+#else
+void lcdPrint(String param1, String param2) {}
+#endif
 
+#ifdef DATA_VIA_HTTP
 String IpAddress2String(IPAddress address) {
  return String(address[0]) + "." + 
         String(address[1]) + "." + 
         String(address[2]) + "." + 
         String(address[3]);
 }
+#endif

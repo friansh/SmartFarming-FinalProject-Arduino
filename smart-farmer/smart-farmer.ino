@@ -1,10 +1,23 @@
-// Uncomment to activate feature(s)
+/*
+ *  -----------------------------------------------
+ * |              Features Activation              |
+ *  -----------------------------------------------
+ *  Please uncomment to activate feature(s)
+ */
+ 
 #define SAVE_CONFIG_EEPROM
 //#define DATA_VIA_SERIAL
 #define DATA_VIA_HTTP
+//#define SENSORS_ULTRASONIC
+//#define SENSORS_HUMIDTEMP
+//#define INTERFACE_LCD_16x2
 
+/*
+ *  -----------------------------------------------
+ * |                  Main Program                 |
+ *  -----------------------------------------------
+ */
 
-// Main program
 #include "smartfarmerlib.h"
 
 SmartFarmer sf;

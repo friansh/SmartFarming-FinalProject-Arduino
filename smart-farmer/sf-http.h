@@ -1,4 +1,10 @@
-class SmartFarmerHttp {
+/*
+ *  -----------------------------------------------
+ * |            HTTP Server Sub-library            |
+ *  -----------------------------------------------
+ */
+
+ class SmartFarmerHttp {
   public:
     void begin() {
       ip = new IPAddress(192, 168, 5, 5);

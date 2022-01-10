@@ -1,26 +1,66 @@
+/*
+ *  -----------------------------------------------
+ * |               Sensor Sub-library              |
+ *  -----------------------------------------------
+ * |  Agroclimate data (if all enabled):           |
+ * |    1. temperature (C)                         |
+ * |    2. humidity (RH)                           |
+ * |    3. pH                                      |
+ * |    4. light intensity (lux)                   |
+ * |    5. nutrient flow (m^3/min)                 |
+ * |    6. nutrient level (m^3)                    |
+ * |    7. acid solution level (m^3)               |
+ * |    8. base solution level (m^3)               |
+ * |    9. total dissolved solid (ppm)             |
+ * |    10. electrical conductivity (dS/m)         |
+ *  -----------------------------------------------
+*/
+
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_TSL2561_U.h>
+
+#ifdef SENSORS_HUMIDTEMP
 #include <DHT.h>
 #include <DHT_U.h>
+#endif
+
+#ifdef SENSORS_ULTRASONIC
 #include <NewPing.h>
+#endif
 
 class SmartFarmerSensors {
   public:
     void begin() {
+#ifdef SENSORS_HUMIDTEMP
       pinMode(DHT22_PIN,           INPUT);
+#endif
       pinMode(TDS_INSTRUMENT_PIN,  INPUT);
       pinMode(PH_INSTRUMENT_PIN,   INPUT);
       pinMode(YF_S201_PIN,         INPUT);
 
+      pinMode(I2C_MULTIPLEXER_SELECTOR_S0,    OUTPUT);
+      pinMode(I2C_MULTIPLEXER_SELECTOR_S1,    OUTPUT);
+      pinMode(I2C_MULTIPLEXER_SELECTOR_S2,    OUTPUT);
+
       attachInterrupt(digitalPinToInterrupt(YF_S201_PIN), increaseFlowCount, FALLING);
 
+#ifdef SENSORS_HUMIDTEMP
       dht                         = new DHT_Unified(DHT22_PIN, DHT22);
+#endif
+
+#ifdef SENSORS_ULTRASONIC
       nutrientLevelUltrasonic     = new NewPing(NUTRIENT_SOL_ULT_TRIG_PIN, NUTRIENT_SOL_ULT_ECHO_PIN, MAX_DISTANCE);
       acidSolutionLevelUltrasonic = new NewPing(ACID_SOL_ULT_TRIG_PIN, ACID_SOL_ULT_ECHO_PIN, MAX_DISTANCE);
       baseSolutionLevelUltrasonic = new NewPing(BASE_SOL_ULT_TRIG_PIN, BASE_SOL_ULT_ECHO_PIN, MAX_DISTANCE);
+#endif
 
-      lightIntensitySensor        = new Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 0x39);
+      // Get light intensity sensor 0 ( L L L - 0x70 )
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S0, LOW);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S1, LOW);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S2, LOW);
+      
+      lightIntensitySensor        = new Adafruit_TSL2561_Unified(GROWTH_LIGHT_IN_ADDR, 12345);
 
       if (!lightIntensitySensor->begin())
         Serial.println("[SNCK] no TSL2561 detected");
@@ -35,13 +75,17 @@ class SmartFarmerSensors {
         // lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_101MS);  /* medium resolution and speed   */
         lightIntensitySensor->setIntegrationTime(TSL2561_INTEGRATIONTIME_402MS);  /* 16-bit data but slowest conversions */
 
-        gatherTSLInfo();
-        checkTSL();
+        gatherSensorsInfo();
       }
 
+      checkSensors();
+
+#ifdef SENSORS_HUMIDTEMP
       dht->begin();
+#endif
     }
 
+#ifdef SENSORS_HUMIDTEMP
     float getTemperature() {
       dht->temperature().getEvent(&sensorsEvent);
       if (isnan(sensorsEvent.temperature)) return -1;
@@ -53,22 +97,37 @@ class SmartFarmerSensors {
       if (isnan(sensorsEvent.relative_humidity)) return -1;
       else return sensorsEvent.relative_humidity;
     }
+#endif
 
     float getPH() {
       return ph - 1.00;
     }
 
     float getLightIntensity() {
+      // Get sensor 0 ( L L L - 0x70 )
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S0, LOW);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S1, LOW);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S2, LOW);
+      
       lightIntensitySensor->getEvent(&sensorsEvent);
 
       if (sensorsEvent.light <= 65536) return sensorsEvent.light;
       else return -1;
     }
 
+    float getOutLightIntensity() {
+      // Get sensor 1 ( L L H - 0x71 )
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S0, HIGH);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S1, LOW);
+      digitalWrite(I2C_MULTIPLEXER_SELECTOR_S2, LOW);
+      return 0;
+    }
+
     float getNutrientFlow() {
       return nutrientFlow;
     }
 
+#ifdef SENSORS_ULTRASONIC
     float getNutrientLevel() {
       float h = nutrientLevelUltrasonic->ping_cm();
       const float L1 = 41.5 * 28.5;
@@ -87,6 +146,7 @@ class SmartFarmerSensors {
       //      return (baseSolutionContainerWidth * baseSolutionContainerLength * h);
       return (float) random(0, 4000);
     }
+#endif
 
     float getTDS() {
       return tds - 493.00;
@@ -120,27 +180,36 @@ class SmartFarmerSensors {
     }
 
   private:
+#ifdef SENSORS_HUMIDTEMP
     DHT_Unified *dht;
+#endif
+
+#ifdef SENSORS_ULTRASONIC
     NewPing *nutrientLevelUltrasonic;
     NewPing *acidSolutionLevelUltrasonic;
     NewPing *baseSolutionLevelUltrasonic;
+#endif
+
     Adafruit_TSL2561_Unified *lightIntensitySensor;
 
     sensors_event_t sensorsEvent;
 
+#ifdef SENSORS_ULTRASONIC
     const unsigned int nutrientContainerWidth       = 10;
     const unsigned int nutrientContainerLength      = 20;
     const unsigned int baseSolutionContainerWidth   = 30;
     const unsigned int baseSolutionContainerLength  = 40;
     const unsigned int acidSolutionContainerWidth   = 50;
     const unsigned int acidSolutionContainerLength  = 60;
+#endif
 
     float nutrientFlow  = 0.00;
     float ph            = 0.00;
 
     float tds = 0;
 
-    void gatherDHTInfo() {
+    void gatherSensorsInfo() {
+#ifdef SENSORS_HUMIDTEMP
       sensor_t dhtSensor;
       dht->temperature().getSensor(&dhtSensor);
       Serial.println(F("[SNIF] Temperature Sensor"));
@@ -161,9 +230,8 @@ class SmartFarmerSensors {
       Serial.print  (F("[SNIF] Min Value:   ")); Serial.print(dhtSensor.min_value); Serial.println(F("%"));
       Serial.print  (F("[SNIF] Resolution:  ")); Serial.print(dhtSensor.resolution); Serial.println(F("%"));
       Serial.println(F("[SNIF] ------------------------------------"));
-    }
+#endif
 
-    void gatherTSLInfo() {
       sensor_t tslSensor;
       lightIntensitySensor->getSensor(&tslSensor);
       Serial.println(F("[SNIF] ------------------------------------"));
@@ -177,32 +245,32 @@ class SmartFarmerSensors {
       Serial.println(F("[SNIF] ------------------------------------"));
     }
 
-    void checkSensor() {
+    void checkSensors() {
       Serial.println(F("[SNCK] Checking sensors..."));
 
-      //      dht->temperature().getEvent(&sensorsEvent);
-      //      if (isnan(sensorsEvent.temperature)) Serial.println(F("[SNCK] Temperature sensor (DHT22) ERROR!"));
-      //      else Serial.println(F("[SNCK] Temperature sensor (DHT22) OK!"));
-      //
-      //      dht->humidity().getEvent(&sensorsEvent);
-      //      if (isnan(sensorsEvent.relative_humidity)) Serial.println(F("[SNCK] Humidity sensor (DHT22) ERROR!"));
-      //      else Serial.println(F("[SNCK] Humidity sensor (DHT22) OK!"));
+#ifdef SENSORS_HUMIDTEMP
+      dht->temperature().getEvent(&sensorsEvent);
+      if (isnan(sensorsEvent.temperature)) Serial.println(F("[SNCK] Temperature sensor (DHT22) ERROR!"));
+      else Serial.println(F("[SNCK] Temperature sensor (DHT22) OK!"));
 
+      dht->humidity().getEvent(&sensorsEvent);
+      if (isnan(sensorsEvent.relative_humidity)) Serial.println(F("[SNCK] Humidity sensor (DHT22) ERROR!"));
+      else Serial.println(F("[SNCK] Humidity sensor (DHT22) OK!"));
+#endif
 
-      //      float ntVol = nutrientLevelUltrasonic->ping_cm();
-      //
-      //      if ( ntVol == 0 )
-      //        Serial.println(F("[SNCK] Ultrasonic sensor (HC-SR04) ERROR!"));
-      //      else
-      //        Serial.println(F("[SNCK] Ultrasonic sensor (HC-SR04) OK!"));
+#ifdef SENSORS_ULTRASONIC
+      float ntVol = nutrientLevelUltrasonic->ping_cm();
 
-      Serial.println(F("[SNCK] ------------------------------------"));
-    }
+      if ( ntVol == 0 )
+        Serial.println(F("[SNCK] Ultrasonic sensor (HC-SR04) ERROR!"));
+      else
+        Serial.println(F("[SNCK] Ultrasonic sensor (HC-SR04) OK!"));
+#endif
 
-    void checkTSL() {
       lightIntensitySensor->getEvent(&sensorsEvent);
       if (sensorsEvent.light >= 65536) Serial.println(F("[SNCK] Light intensity sensor (TSL2561) ERROR!"));
       else Serial.println(F("[SNCK] Light intensity sensor (TSL2561) OK!"));
-    }
 
+      Serial.println(F("[SNCK] ------------------------------------"));
+    }
 };
