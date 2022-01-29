@@ -20,9 +20,9 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #include <EthernetENC.h>
 #endif
 
+#include "configuration.h"
 #include "helpers.h"
 
-#include "configuration.h"
 #include <ArduinoJson.h>
 
 #ifdef SAVE_CONFIG_EEPROM

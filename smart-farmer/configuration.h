@@ -31,11 +31,6 @@
 #define NUTRIENT_SOL_ULT_ECHO_PIN     
 #endif
 
-// I2C multiplexer pins
-#define I2C_MULTIPLEXER_SELECTOR_S2   44
-#define I2C_MULTIPLEXER_SELECTOR_S1   42
-#define I2C_MULTIPLEXER_SELECTOR_S0   40
-
 /*
  *  -----------------------------------------------
  * |             Global Configurations             |
@@ -58,12 +53,20 @@ byte mac[] = {
 #endif
 
 //I2C address
-#define GROWTH_LIGHT_IN_ADDR      0x70   // default 0x39
-#define GROWTH_LIGHT_OUT_ADDR     0x71   // default 0x
-
+#define GROWTH_LIGHT_IN_ADDR      0x49
+#define GROWTH_LIGHT_OUT_ADDR     0x39 
 
 // Pump config(s)
 #define NUTRIENT_FLOW_CORR_INTERVAL   5000
-#define PH_CORR_INTERVAL   5000
-#define ACID_PUMP_PWM_SPEED           89    // Approx. 35% of 255
-#define BASE_PUMP_PWM_SPEED           89    // Approx. 35% of 255
+#define PH_CORR_INTERVAL              5000
+#define ACID_PUMP_PWM_SPEED           115    // Approx. 45% of 255
+#define BASE_PUMP_PWM_SPEED           127    // Approx. 50% of 255
+
+
+// Light intensity sensor and growth light config(s)
+#define LIGHT_INTENSITY_CHECK_INTERVAL  5000
+#define LIGHT_INTENSITY_SENSOR_INSIDE_INTEGRATION_TIME      TSL2561_INTEGRATIONTIME_101MS
+#define LIGHT_INTENSITY_SENSOR_OUTSIDE_INTEGRATION_TIME     TSL2561_INTEGRATIONTIME_101MS
+
+#define SENSOR_GATHERING_INTERVAL 10U
+#define SENSOR_SAMPLES 100

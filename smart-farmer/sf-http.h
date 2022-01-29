@@ -80,11 +80,12 @@
               else if (path == "/sensors") {
                 StaticJsonDocument<JSON_OBJECT_SIZE(10)> actualAgroclimateData;
 
-                actualAgroclimateData["ph"]                   = sf_sensors.getPH();
-                actualAgroclimateData["light_intensity"]      = sf_sensors.getLightIntensity();
-                actualAgroclimateData["nutrient_flow"]        = sf_sensors.getNutrientFlow();
-                actualAgroclimateData["tds"]                  = sf_sensors.getTDS();
-                actualAgroclimateData["ec"]                   = sf_sensors.getEC();
+                actualAgroclimateData["ph"]                       = sf_sensors.getPH();
+                actualAgroclimateData["light_intensity_inside"]   = sf_sensors.getLightIntensityInside();
+                actualAgroclimateData["light_intensity_outside"]  = sf_sensors.getLightIntensityOutside();
+                actualAgroclimateData["nutrient_flow"]            = sf_sensors.getNutrientFlow();
+                actualAgroclimateData["tds"]                      = sf_sensors.getTDS();
+                actualAgroclimateData["ec"]                       = sf_sensors.getEC();
 
                 String JSONOutput = "";
                 serializeJson(actualAgroclimateData, JSONOutput);

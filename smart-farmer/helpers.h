@@ -8,13 +8,14 @@ int flowCount = 0;
 
 // TDS Sensor Parameters
 #define VREF    5.0              // analog reference voltage(Volt) of the ADC
-#define SCOUNT  30               // sum of sample point
+//#define SCOUNT  30               // sum of sample point
 
-int tdsAnalogBuffer[SCOUNT];        // store the analog value in the array, read from ADC
-int phAnalogBuffer[SCOUNT];        // store the analog value in the array, read from ADC
+unsigned int phAnalogBuffer[SENSOR_SAMPLES];
+unsigned int tdsAnalogBuffer[SENSOR_SAMPLES];
 
-int analogBufferTemp[SCOUNT];
-int analogBufferIndex = 0, copyIndex = 0;
+//int analogBufferTemp[SCOUNT];
+int analogBufferIndex = 0;
+//int copyIndex = 0;
 
 void increaseFlowCount() {
   flowCount++;
